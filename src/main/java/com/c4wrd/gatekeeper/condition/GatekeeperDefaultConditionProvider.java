@@ -9,18 +9,18 @@ import java.util.Map;
 
 public class GatekeeperDefaultConditionProvider implements ConditionProvider {
 
-    private static Map<String, Condition> DEFAULT_CONDITIONS = new HashMap<String, Condition>();
+  private static Map<String, Condition> DEFAULT_CONDITIONS = new HashMap<String, Condition>();
 
-    static {
-        DEFAULT_CONDITIONS.put("string_equals", new StringEqualsCondition());
+  static {
+    DEFAULT_CONDITIONS.put("string_equals", new StringEqualsCondition());
+  }
+
+  @Override
+  public Condition provideCondition(String type, Map<String, Object> arguments) {
+    if (DEFAULT_CONDITIONS.containsKey(type)) {
+      return DEFAULT_CONDITIONS.get(type);
     }
 
-    @Override
-    public Condition provideCondition(String type, Map<String, Object> arguments) {
-        if ( DEFAULT_CONDITIONS.containsKey(type) ) {
-            return DEFAULT_CONDITIONS.get(type);
-        }
-
-        return null;
-    }
+    return null;
+  }
 }
