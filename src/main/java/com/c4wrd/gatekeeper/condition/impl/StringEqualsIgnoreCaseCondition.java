@@ -2,6 +2,8 @@ package com.c4wrd.gatekeeper.condition.impl;
 
 import com.c4wrd.gatekeeper.api.AccessRequest;
 import com.c4wrd.gatekeeper.api.Condition;
+import com.c4wrd.gatekeeper.api.GatekeeperContext;
+import org.apache.commons.text.lookup.StringLookup;
 
 import java.util.Map;
 
@@ -14,12 +16,13 @@ public class StringEqualsIgnoreCaseCondition extends Condition {
    * @return
    */
   @Override
-  public boolean fulfills(Map<String, Object> args, AccessRequest request) {
-    for (String key : args.keySet()) {
-      String expectedValue = super.resolveArgument(args, key, String.class);
-      String providedValue = super.resolveContext(request.getContext(), key, String.class);
+  public boolean fulfills(Map<String, Object> args, AccessRequest request, GatekeeperContext context) {
+    StringLookup lookup = context.getTemplateEngine().getVariableResolver(request);
 
-      if (!expectedValue.equalsIgnoreCase(providedValue)) {
+    for (String expectedValueKey : args.keySet()) {
+      String expectedValue = super.resolveArgument(args, expectedValueKey, String.class);
+      String actualValue = lookup.lookup(expectedValueKey);
+      if (!expectedValue.equalsIgnoreCase(actualValue)) {
         return false;
       }
     }

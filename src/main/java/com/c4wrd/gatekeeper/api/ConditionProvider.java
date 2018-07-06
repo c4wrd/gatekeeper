@@ -3,12 +3,16 @@ package com.c4wrd.gatekeeper.api;
 import java.util.Map;
 
 public interface ConditionProvider {
+
+  /**
+   * Whether or not this condition provider can provide
+   * a specified condition identified by type
+   */
+  boolean canProvideCondition(String type);
   /**
    * Provides the condition that implements the given condition type.
    *
    * @param type The implementation of the condition identified by type
-   * @param arguments The arugments provided by the policy definition, which may or may not be valid
-   *     arguments for the condition.
    */
-  Condition provideCondition(String type, Map<String, Object> arguments);
+  Condition provideCondition(String type);
 }

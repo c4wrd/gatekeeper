@@ -1,5 +1,9 @@
 package com.c4wrd.gatekeeper.util;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import dk.brics.automaton.Automaton;
 
 import java.util.HashMap;
@@ -18,13 +22,17 @@ public class ResourceMatcher {
    * TODO replace with LRU cache from Guava, as many many resources may be
    * cached but never used again
    */
-  private static final Map<String, Automaton> AUTOMATON_CACHE = new HashMap<>();
+  private static final LoadingCache<String, Automaton> AUTOMATON_CACHE = CacheBuilder
+          .newBuilder()
+          .softValues()
+          .build(new CacheLoader<String, Automaton>() {
+            @Override
+            public Automaton load(String pattern) {
+              return getAutomaton(pattern);
+            }
+          });
 
   private static Automaton getAutomaton(String pattern) {
-    if (AUTOMATON_CACHE.containsKey(pattern)) {
-      return AUTOMATON_CACHE.get(pattern);
-    }
-
     Automaton automaton;
 
     if (pattern.contains("*")) {
@@ -42,7 +50,6 @@ public class ResourceMatcher {
     }
 
     automaton.minimize();
-    AUTOMATON_CACHE.put(pattern, automaton);
     return automaton;
   }
 
@@ -56,7 +63,7 @@ public class ResourceMatcher {
     }
 
     // obtain the DFA for this input pattern
-    Automaton automaton = getAutomaton(pattern);
+    Automaton automaton = AUTOMATON_CACHE.getUnchecked(pattern);
     return automaton.run(source);
   }
 }
