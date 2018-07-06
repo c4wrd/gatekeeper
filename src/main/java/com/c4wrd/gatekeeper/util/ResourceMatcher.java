@@ -14,6 +14,9 @@ public class ResourceMatcher {
 
   /**
    * Local cache of automatons for resource patterns
+   *
+   * TODO replace with LRU cache from Guava, as many many resources may be
+   * cached but never used again
    */
   private static final Map<String, Automaton> AUTOMATON_CACHE = new HashMap<>();
 
