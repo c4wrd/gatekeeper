@@ -4,11 +4,12 @@ import com.c4wrd.gatekeeper.api.*;
 import com.c4wrd.gatekeeper.defaults.DefaultAuditLogger;
 import com.c4wrd.gatekeeper.defaults.DefaultGatekeeperTemplateEngine;
 import com.c4wrd.gatekeeper.defaults.DefaultPolicyDecider;
+import com.c4wrd.gatekeeper.namespaces.StringsNamespace;
 import com.c4wrd.gatekeeper.util.ResourceMatcher;
-import lombok.Builder;
 import org.apache.commons.jexl3.JexlBuilder;
 import org.apache.commons.jexl3.JexlEngine;
 import org.apache.commons.jexl3.JexlExpression;
+import org.apache.commons.jexl3.MapContext;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,6 +27,14 @@ public class Gatekeeper implements GatekeeperContext {
   private JexlEngine engine;
 
   private Gatekeeper() {}
+
+  public static Builder defaultBuilder() {
+    return new Builder()
+        .addJexlNamespace("strings", new StringsNamespace())
+        .setPolicyDecider(new DefaultPolicyDecider())
+        .auditLogger(new DefaultAuditLogger())
+        .templateEngine(new DefaultGatekeeperTemplateEngine());
+  }
 
   /**
    * @param request The access request
@@ -120,7 +129,14 @@ public class Gatekeeper implements GatekeeperContext {
       return Optional.of(policy.getEffect());
     }
 
-    if (!allConditionsMet(request, conditions)) {
+    try {
+      if (!allConditionsMet(request, conditions)) {
+        return Optional.empty();
+      }
+    } catch (Exception ex) {
+      if (auditLogger != null) {
+        auditLogger.logExceptionThrown(request, policy, ex);
+      }
       return Optional.empty();
     }
 
@@ -144,10 +160,17 @@ public class Gatekeeper implements GatekeeperContext {
                 it -> templateEngine.render(it.getKey(), request), Map.Entry::getValue));
   }
 
-  private boolean allConditionsMet(
-          AccessRequest request, List<String> conditions) {
-    for ( String condition : conditions ) {
-        JexlExpression expression =
+  private boolean allConditionsMet(AccessRequest request, List<String> conditions) {
+    for (String condition : conditions) {
+      JexlExpression expression = engine.createExpression(condition);
+      MapContext context = new MapContext(new HashMap<>(request.getContext()));
+      context.set("subject", request.getSubject());
+      context.set("action", request.getAction());
+      context.set("resource", request.getResource());
+      boolean result = (Boolean) expression.evaluate(context);
+      if (!result) {
+        return false;
+      }
     }
     return true;
   }
@@ -173,67 +196,52 @@ public class Gatekeeper implements GatekeeperContext {
     return decision;
   }
 
-  @Override
-  public GatekeeperTemplateEngine getTemplateEngine() {
-    return templateEngine;
-  }
-
-  public static Builder defaultBuilder() {
-      return new Builder()
-              .setPolicyDecider(new DefaultPolicyDecider())
-              .auditLogger(new DefaultAuditLogger())
-              .templateEngine(new DefaultGatekeeperTemplateEngine());
-  }
-
   public static class Builder {
 
-      private Gatekeeper instance;
+    private Gatekeeper instance;
 
-      private JexlBuilder builder;
+    private JexlBuilder builder;
 
-      private Map<String, Object> namespaces;
+    private Map<String, Object> namespaces;
 
-      public Builder() {
-       this.instance = new Gatekeeper();
-       this.builder = new JexlBuilder();
-       this.namespaces = new HashMap<>();
+    public Builder() {
+      this.instance = new Gatekeeper();
+      this.builder = new JexlBuilder();
+      this.namespaces = new HashMap<>();
+    }
+
+    public Builder setPolicyDecider(PolicyDecider decider) {
+      instance.policyDecider = decider;
+      return this;
+    }
+
+    public Builder policyProviders(PolicyProvider... providers) {
+      if (this.instance.policyProviders == null) {
+        this.instance.policyProviders = new LinkedList<>();
       }
+      this.instance.policyProviders.addAll(Arrays.asList(providers));
+      return this;
+    }
 
-      public Builder setPolicyDecider(PolicyDecider decider) {
-          instance.policyDecider = decider;
-          return this;
-      }
+    public Builder addJexlNamespace(String namespace, Object instance) {
+      this.namespaces.put(namespace, instance);
+      return this;
+    }
 
-      public Builder addPolicyProviders(PolicyProvider... providers) {
-          if ( this.instance.policyProviders == null ) {
-              this.instance.policyProviders = new LinkedList<>();
-          }
-          this.instance.policyProviders.addAll(Arrays.asList(providers));
-          return this;
-      }
+    public Builder templateEngine(GatekeeperTemplateEngine templateEngine) {
+      this.instance.templateEngine = templateEngine;
+      return this;
+    }
 
-      public Builder addJexlNamespace(String namespace, Object instance) {
-          this.namespaces.put(namespace, instance);
-          return this;
-      }
+    public Builder auditLogger(AuditLogger logger) {
+      this.instance.auditLogger = logger;
+      return this;
+    }
 
-      public Builder templateEngine(GatekeeperTemplateEngine templateEngine) {
-          this.instance.templateEngine = templateEngine;
-          return this;
-      }
-
-      public Builder auditLogger(AuditLogger logger) {
-          this.instance.auditLogger = logger;
-          return this;
-      }
-
-      public Gatekeeper build() {
-          JexlEngine engine = this.builder
-                  .namespaces(namespaces)
-                  .create();
-          this.instance.engine = engine;
-          return this.instance;
-      }
-
+    public Gatekeeper build() {
+      JexlEngine engine = this.builder.namespaces(namespaces).create();
+      this.instance.engine = engine;
+      return this.instance;
+    }
   }
 }

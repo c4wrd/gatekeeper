@@ -1,15 +1,12 @@
 package com.c4wrd.gatekeeper;
 
 import com.c4wrd.gatekeeper.api.*;
-import com.c4wrd.gatekeeper.condition.GatekeeperBaseConditionProvider;
 import com.c4wrd.gatekeeper.defaults.BasicPolicy;
 import com.c4wrd.gatekeeper.defaults.StringSubject;
-import com.c4wrd.gatekeeper.testutils.ConditionBuilder;
 import com.c4wrd.gatekeeper.testutils.TestPolicyProvider;
 import com.google.common.collect.Lists;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -17,9 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class GatekeeperTests {
 
   private Gatekeeper getGatekeeper(PolicyProvider... providers) {
-    return Gatekeeper.builder()
-        .policyProviders(Arrays.asList(providers))
-        .conditionProvider(new GatekeeperBaseConditionProvider())
+    return Gatekeeper.defaultBuilder()
+        .policyProviders(providers)
         .build();
   }
 
@@ -53,9 +49,7 @@ class GatekeeperTests {
         BasicPolicy.builder()
             .action("view")
             .resource("resource")
-            .condition(
-                "string:equals",
-                new ConditionBuilder().arg("resource_name", "permitted_resource_name").build())
+            .condition("strings:equal(resource_name, 'permitted_resource_name')")
             .effect(Effect.ALLOW)
             .build();
 
@@ -85,7 +79,7 @@ class GatekeeperTests {
         BasicPolicy.builder()
             .action("view")
             .resource("resource")
-            .condition("string:equals", new ConditionBuilder().arg("subject:id", "Cory").build())
+            .condition("strings:equal(subject.id, 'Cory')")
             .effect(Effect.ALLOW)
             .build();
 
@@ -109,8 +103,7 @@ class GatekeeperTests {
         BasicPolicy.builder()
             .action("view")
             .resource("resource")
-            .condition(
-                "string:equals", new ConditionBuilder().arg("subject:id", "Not Cory").build())
+            .condition("strings:equal(subject.id, 'Not Cory')")
             .effect(Effect.ALLOW)
             .build();
 
@@ -134,9 +127,8 @@ class GatekeeperTests {
         BasicPolicy.builder()
             .action("view")
             .resource("resource")
-            .condition("string:equals", new ConditionBuilder().arg("subject:id", "Cory").build())
-            .condition(
-                "string:equals", new ConditionBuilder().arg("example_context_value", "123").build())
+            .condition("strings:equal(subject.id, 'Cory')")
+            .condition("strings:equal(example_context_value, '123')")
             .effect(Effect.ALLOW)
             .build();
 
@@ -166,12 +158,8 @@ class GatekeeperTests {
         BasicPolicy.builder()
             .action("view")
             .resource("resource")
-            .condition(
-                "string:equals",
-                new ConditionBuilder()
-                    .arg("subject:id", "Cory")
-                    .arg("example_context_value", "123")
-                    .build())
+            .condition("strings:equal(subject.id, 'Cory')")
+            .condition("strings:equal(example_context_value, '123')")
             .effect(Effect.ALLOW)
             .build();
 
@@ -211,8 +199,7 @@ class GatekeeperTests {
         BasicPolicy.builder()
             .action("view")
             .resource("resource")
-            .condition(
-                "string:equals", new ConditionBuilder().arg("example_context_value", "123").build())
+            .condition("strings:equal(example_context_value, '123')")
             .effect(Effect.ALLOW)
             .build();
 
@@ -221,7 +208,7 @@ class GatekeeperTests {
         BasicPolicy.builder()
             .action("view")
             .resource("resource")
-            .condition("string:equals", new ConditionBuilder().arg("subject:id", "Tyler").build())
+            .condition("strings:equal(subject.id, 'Tyler')")
             .effect(Effect.DENY)
             .build();
 

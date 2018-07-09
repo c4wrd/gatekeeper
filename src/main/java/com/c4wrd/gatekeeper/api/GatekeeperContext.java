@@ -6,6 +6,4 @@ public interface GatekeeperContext {
   Effect enforce(AccessRequest request);
 
   List<Policy> getPermittingPolicies(AccessRequest request);
-
-  GatekeeperTemplateEngine getTemplateEngine();
 }

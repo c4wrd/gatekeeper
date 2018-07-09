@@ -4,8 +4,6 @@ import com.c4wrd.gatekeeper.api.AccessRequest;
 import com.c4wrd.gatekeeper.api.GatekeeperTemplateEngine;
 import com.google.common.collect.Maps;
 import org.apache.commons.text.StringSubstitutor;
-import org.apache.commons.text.lookup.StringLookup;
-import org.apache.commons.text.lookup.StringLookupFactory;
 
 import java.util.Map;
 
@@ -21,13 +19,8 @@ public class DefaultGatekeeperTemplateEngine implements GatekeeperTemplateEngine
 
   @Override
   public String render(String template, AccessRequest request) {
-    StringSubstitutor substitutor = new StringSubstitutor(getVariableResolver(request));
+    StringSubstitutor substitutor = new StringSubstitutor(makeValueMap(request));
     return substitutor.replace(template);
-  }
-
-  @Override
-  public StringLookup getVariableResolver(AccessRequest request) {
-    return StringLookupFactory.INSTANCE.mapStringLookup(makeValueMap(request));
   }
 
   private Map<String, Object> makeValueMap(AccessRequest request) {
