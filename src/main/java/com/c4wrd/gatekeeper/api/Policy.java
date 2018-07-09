@@ -25,5 +25,5 @@ public interface Policy {
   /**
    * Map of condition name -> map of condition arguments
    */
-  Map<String, Map<String, Object>> getConditionsAndArgs();
+  List<String> getConditions();
 }

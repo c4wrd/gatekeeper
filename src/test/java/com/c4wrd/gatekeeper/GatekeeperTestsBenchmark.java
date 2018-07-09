@@ -7,10 +7,16 @@ import com.c4wrd.gatekeeper.defaults.StringSubject;
 import com.c4wrd.gatekeeper.testutils.ConditionBuilder;
 import com.c4wrd.gatekeeper.testutils.TestPolicyProvider;
 import com.google.common.collect.Lists;
+import org.apache.commons.jexl3.JexlBuilder;
+import org.apache.commons.jexl3.JexlEngine;
+import org.apache.commons.jexl3.JexlExpression;
+import org.apache.commons.jexl3.MapContext;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -21,6 +27,31 @@ class GatekeeperTestsBenchmark {
             .policyProviders(Arrays.asList(providers))
             .conditionProvider(new GatekeeperBaseConditionProvider())
             .build();
+  }
+
+  public static class StringNamespace {
+    public boolean equal(String value1, String value2) {
+      return value1 != null && value2 != null && value1.equalsIgnoreCase(value2);
+    }
+  }
+
+  @Test
+  void testJexl() {
+    Map<String, Object> ns = new HashMap<>();
+    ns.put("string", new StringNamespace());
+
+    JexlEngine jexl = new JexlBuilder()
+            .cache(512)
+            .namespaces(ns)
+            .create();
+
+    JexlExpression exp = jexl.createExpression("strings:equal(var1, var2)");
+    MapContext context = new MapContext();
+    context.set("var1", "value 1");
+    context.set("var2", "value 2");
+    context.set("subject", new StringSubject("Cory"));
+    boolean output = (Boolean) jexl.createExpression("string:equal(subject.id, 'Cory')").evaluate(context);
+    System.out.println(output);
   }
 
   /**
@@ -53,9 +84,7 @@ class GatekeeperTestsBenchmark {
         BasicPolicy.builder()
             .action("view")
             .resource("resource")
-            .condition(
-                "string:equals",
-                new ConditionBuilder().arg("resource_name", "permitted_resource_name").build())
+            .condition("strings:equal(resource_name, 'permitted_resource_name'")
             .effect(Effect.ALLOW)
             .build();
 
@@ -88,9 +117,7 @@ class GatekeeperTestsBenchmark {
             BasicPolicy.builder()
                     .action("view")
                     .resource("resource")
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder().arg("subject:id", "Cory").build())
+                    .condition("strings:equal(subject.id, 'Cory')")
                     .effect(Effect.ALLOW)
                     .build();
 
@@ -118,9 +145,7 @@ class GatekeeperTestsBenchmark {
             BasicPolicy.builder()
                     .action("view")
                     .resource("resource")
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder().arg("subject:id", "Not Cory").build())
+                    .condition("strings:equal(subject.id, 'Not Cory')")
                     .effect(Effect.ALLOW)
                     .build();
 
@@ -148,13 +173,8 @@ class GatekeeperTestsBenchmark {
             BasicPolicy.builder()
                     .action("view")
                     .resource("resource")
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder().arg("subject:id", "Cory").build())
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder().arg("example_context_value", "123").build()
-                    )
+                    .condition("string:equals(subject.id, 'Cory')")
+                    .condition("string:equals(example_context_value, '123')")
                     .effect(Effect.ALLOW)
                     .build();
 
@@ -184,11 +204,8 @@ class GatekeeperTestsBenchmark {
             BasicPolicy.builder()
                     .action("view")
                     .resource("resource")
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder()
-                                    .arg("subject:id", "Cory")
-                                    .arg("example_context_value", "123").build())
+                    .condition("strings:equal(subject.id, 'Cory'")
+                    .condition("strings:equal(example_context_value, '123'")
                     .effect(Effect.ALLOW)
                     .build();
 
@@ -228,10 +245,7 @@ class GatekeeperTestsBenchmark {
               BasicPolicy.builder()
                       .action("view")
                       .resource("resource")
-                      .condition(
-                              "string:equals",
-                              new ConditionBuilder().arg("example_context_value", "123").build()
-                      )
+                      .condition("strings:equal(example_context_value, '123')")
                       .effect(Effect.ALLOW)
                       .build();
 
@@ -240,9 +254,7 @@ class GatekeeperTestsBenchmark {
               BasicPolicy.builder()
                       .action("view")
                       .resource("resource")
-                      .condition(
-                              "string:equals",
-                              new ConditionBuilder().arg("subject:id", "Tyler").build())
+                      .condition("strings:equal(subject.id, 'Tyler')")
                       .effect(Effect.DENY)
                       .build();
 

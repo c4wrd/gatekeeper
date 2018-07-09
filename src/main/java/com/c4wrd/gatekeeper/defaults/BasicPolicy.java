@@ -19,7 +19,7 @@ public class BasicPolicy implements Policy {
     @Singular
     private List<String> resources;
     @Singular
-    private Map<String, Map<String, Object>> conditions;
+    private List<String> conditions;
 
     @Override
     public Effect getEffect() {
@@ -47,7 +47,7 @@ public class BasicPolicy implements Policy {
     }
 
     @Override
-    public Map<String, Map<String, Object>> getConditionsAndArgs() {
+    public List<String> getConditions() {
         return conditions;
     }
 }

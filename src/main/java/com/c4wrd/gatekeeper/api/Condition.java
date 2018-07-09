@@ -1,9 +1,10 @@
 package com.c4wrd.gatekeeper.api;
 
 import com.c4wrd.gatekeeper.exception.InvalidConditionArgumentException;
-import com.c4wrd.gatekeeper.exception.InvalidContextValueException;
 import com.google.common.reflect.TypeToken;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public abstract class Condition {
@@ -14,36 +15,32 @@ public abstract class Condition {
   }
 
   protected <T> T resolveArgument(
-          Map<String, Object> arguments, String name, TypeToken<T> typeToken) {
+      Map<String, Object> arguments, String name, TypeToken<T> typeToken) {
     if (!arguments.containsKey(name)) {
       throw InvalidConditionArgumentException.missing(name, getClass());
     }
     Object value = arguments.get(name);
     if (!typeToken.isSupertypeOf(value.getClass())) {
       throw InvalidConditionArgumentException.invalidType(
-              name, typeToken.getRawType(), value.getClass(), getClass());
+          name, typeToken.getRawType(), value.getClass(), getClass());
     }
 
     return (T) value;
   }
 
-  protected <T> T resolveContext(
-          Map<String, Object> context, String name, Class<T> contextValueClass) {
-    return resolveContext(context, name, TypeToken.of(contextValueClass));
-  }
-
-  protected <T> T resolveContext(
-          Map<String, Object> context, String name, TypeToken<T> contextType) {
-    if (!context.containsKey(name)) {
-      throw InvalidContextValueException.missing(name, getClass());
-    }
-    Object value = context.get(name);
-    if (!contextType.isSupertypeOf(value.getClass())) {
-      throw InvalidContextValueException.invalidType(
-              name, contextType.getRawType(), value.getClass(), getClass());
+  @SuppressWarnings("unchecked")
+  protected List<String> resolveArgument(Map<String, Object> arguments, String name) {
+    if ( ! arguments.containsKey(name) ) {
+      throw InvalidConditionArgumentException.missing(name, getClass());
     }
 
-    return (T) value;
+    Object value = arguments.get(name);
+
+    if ( value instanceof List ) {
+      return (List<String>) value;
+    } else {
+      return Collections.singletonList((String)value);
+    }
   }
 
   /**

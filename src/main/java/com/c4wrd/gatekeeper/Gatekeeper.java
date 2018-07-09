@@ -5,29 +5,27 @@ import com.c4wrd.gatekeeper.defaults.DefaultAuditLogger;
 import com.c4wrd.gatekeeper.defaults.DefaultGatekeeperTemplateEngine;
 import com.c4wrd.gatekeeper.defaults.DefaultPolicyDecider;
 import com.c4wrd.gatekeeper.util.ResourceMatcher;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import lombok.Builder;
-import lombok.Singular;
+import org.apache.commons.jexl3.JexlBuilder;
+import org.apache.commons.jexl3.JexlEngine;
+import org.apache.commons.jexl3.JexlExpression;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
-@Builder
 public class Gatekeeper implements GatekeeperContext {
 
-  @Singular List<ConditionProvider> conditionProviders;
+  GatekeeperTemplateEngine templateEngine = new DefaultGatekeeperTemplateEngine();
 
-  @Builder.Default GatekeeperTemplateEngine templateEngine = new DefaultGatekeeperTemplateEngine();
-
-  @Builder.Default private AuditLogger auditLogger = new DefaultAuditLogger();
+  private AuditLogger auditLogger = new DefaultAuditLogger();
 
   private List<PolicyProvider> policyProviders;
 
-  @Builder.Default private PolicyDecider policyDecider = new DefaultPolicyDecider();
+  private PolicyDecider policyDecider = new DefaultPolicyDecider();
+
+  private JexlEngine engine;
+
+  private Gatekeeper() {}
 
   /**
    * @param request The access request
@@ -116,38 +114,10 @@ public class Gatekeeper implements GatekeeperContext {
    * @return
    */
   private Optional<Effect> evaluatePolicy(AccessRequest request, Policy policy) {
-    Map<String, Map<String, Object>> conditionsAndArgs = policy.getConditionsAndArgs();
+    List<String> conditions = policy.getConditions();
 
-    if (conditionsAndArgs == null || conditionsAndArgs.isEmpty()) {
+    if (conditions == null || conditions.isEmpty()) {
       return Optional.of(policy.getEffect());
-    }
-
-    Multimap<Condition, Map<String, Object>> conditions = HashMultimap.create();
-
-    // iterate over each condition id and arguments
-    for (Map.Entry<String, Map<String, Object>> entry : conditionsAndArgs.entrySet()) {
-      String conditionId = entry.getKey();
-      Map<String, Object> conditionArgs = templateArguments(request, entry.getValue());
-      boolean conditionProvidedFor = false;
-
-      for (ConditionProvider conditionProvider : conditionProviders) {
-        if (conditionProvider.canProvideCondition(conditionId)) {
-          Condition condition = conditionProvider.provideCondition(conditionId);
-          conditions.put(condition, conditionArgs);
-          conditionProvidedFor = true;
-          // sanity check that only one condition provider can provide for a condition
-          break;
-        }
-      }
-
-      // if the condition was not valid, log it, then return null as this policy does not match the
-      // request
-      if (!conditionProvidedFor) {
-        if (auditLogger != null) {
-          auditLogger.logConditionNotFound(request, policy, conditionId);
-        }
-        return Optional.empty();
-      }
     }
 
     if (!allConditionsMet(request, conditions)) {
@@ -175,14 +145,9 @@ public class Gatekeeper implements GatekeeperContext {
   }
 
   private boolean allConditionsMet(
-          AccessRequest request, Multimap<Condition, Map<String, Object>> conditions) {
-    for ( Condition condition : conditions.keys() ) {
-      for ( Map<String, Object> args : conditions.get(condition)) {
-        // if the conditions aren't met, this policy is no longer a candidate
-        if (!condition.fulfills(args, request, this)) {
-          return false;
-        }
-      }
+          AccessRequest request, List<String> conditions) {
+    for ( String condition : conditions ) {
+        JexlExpression expression =
     }
     return true;
   }
@@ -211,5 +176,64 @@ public class Gatekeeper implements GatekeeperContext {
   @Override
   public GatekeeperTemplateEngine getTemplateEngine() {
     return templateEngine;
+  }
+
+  public static Builder defaultBuilder() {
+      return new Builder()
+              .setPolicyDecider(new DefaultPolicyDecider())
+              .auditLogger(new DefaultAuditLogger())
+              .templateEngine(new DefaultGatekeeperTemplateEngine());
+  }
+
+  public static class Builder {
+
+      private Gatekeeper instance;
+
+      private JexlBuilder builder;
+
+      private Map<String, Object> namespaces;
+
+      public Builder() {
+       this.instance = new Gatekeeper();
+       this.builder = new JexlBuilder();
+       this.namespaces = new HashMap<>();
+      }
+
+      public Builder setPolicyDecider(PolicyDecider decider) {
+          instance.policyDecider = decider;
+          return this;
+      }
+
+      public Builder addPolicyProviders(PolicyProvider... providers) {
+          if ( this.instance.policyProviders == null ) {
+              this.instance.policyProviders = new LinkedList<>();
+          }
+          this.instance.policyProviders.addAll(Arrays.asList(providers));
+          return this;
+      }
+
+      public Builder addJexlNamespace(String namespace, Object instance) {
+          this.namespaces.put(namespace, instance);
+          return this;
+      }
+
+      public Builder templateEngine(GatekeeperTemplateEngine templateEngine) {
+          this.instance.templateEngine = templateEngine;
+          return this;
+      }
+
+      public Builder auditLogger(AuditLogger logger) {
+          this.instance.auditLogger = logger;
+          return this;
+      }
+
+      public Gatekeeper build() {
+          JexlEngine engine = this.builder
+                  .namespaces(namespaces)
+                  .create();
+          this.instance.engine = engine;
+          return this.instance;
+      }
+
   }
 }

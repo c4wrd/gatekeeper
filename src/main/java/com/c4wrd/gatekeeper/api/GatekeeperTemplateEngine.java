@@ -1,7 +1,5 @@
 package com.c4wrd.gatekeeper.api;
 
-import org.apache.commons.text.lookup.StringLookup;
-
 public interface GatekeeperTemplateEngine {
   /**
    * Abstraction over any arbitrary templating engine that will resolve all of the resource
@@ -15,5 +13,4 @@ public interface GatekeeperTemplateEngine {
    * @return The templated string, or the original string if no templating is needed.
    */
   String render(String template, AccessRequest request);
-  StringLookup getVariableResolver(AccessRequest request);
 }
