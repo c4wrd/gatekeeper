@@ -11,18 +11,16 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GatekeeperTests {
 
-
   private Gatekeeper getGatekeeper(PolicyProvider... providers) {
     return Gatekeeper.builder()
-            .policyProviders(Arrays.asList(providers))
-            .conditionProvider(new GatekeeperBaseConditionProvider())
-            .build();
+        .policyProviders(Arrays.asList(providers))
+        .conditionProvider(new GatekeeperBaseConditionProvider())
+        .build();
   }
 
   /**
@@ -79,36 +77,27 @@ class GatekeeperTests {
     assertEquals(Effect.ALLOW, keeper.enforce(request));
   }
 
-  /**
-   * Test that the subject id can be used in a policy as a means
-   * of permitting an action.
-   */
+  /** Test that the subject id can be used in a policy as a means of permitting an action. */
   @Test
   void testPolicyWithSubjectValue() {
     Subject testSubject = new StringSubject("Cory");
     Policy simplePolicy =
-            BasicPolicy.builder()
-                    .action("view")
-                    .resource("resource")
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder().arg("subject:id", "Cory").build())
-                    .effect(Effect.ALLOW)
-                    .build();
+        BasicPolicy.builder()
+            .action("view")
+            .resource("resource")
+            .condition("string:equals", new ConditionBuilder().arg("subject:id", "Cory").build())
+            .effect(Effect.ALLOW)
+            .build();
 
     PolicyProvider provider =
-            TestPolicyProvider.builder()
-                    .policy(testSubject.getId(), Collections.singletonList(simplePolicy))
-                    .build();
+        TestPolicyProvider.builder()
+            .policy(testSubject.getId(), Collections.singletonList(simplePolicy))
+            .build();
 
     Gatekeeper keeper = getGatekeeper(provider);
 
     AccessRequest request =
-            AccessRequest.builder()
-                    .subject(testSubject)
-                    .action("view")
-                    .resource("resource")
-                    .build();
+        AccessRequest.builder().subject(testSubject).action("view").resource("resource").build();
 
     assertEquals(Effect.ALLOW, keeper.enforce(request));
   }
@@ -117,28 +106,23 @@ class GatekeeperTests {
   void testPolicyWithNonMatchingConditions() {
     Subject testSubject = new StringSubject("Cory");
     Policy simplePolicy =
-            BasicPolicy.builder()
-                    .action("view")
-                    .resource("resource")
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder().arg("subject:id", "Not Cory").build())
-                    .effect(Effect.ALLOW)
-                    .build();
+        BasicPolicy.builder()
+            .action("view")
+            .resource("resource")
+            .condition(
+                "string:equals", new ConditionBuilder().arg("subject:id", "Not Cory").build())
+            .effect(Effect.ALLOW)
+            .build();
 
     PolicyProvider provider =
-            TestPolicyProvider.builder()
-                    .policy(testSubject.getId(), Collections.singletonList(simplePolicy))
-                    .build();
+        TestPolicyProvider.builder()
+            .policy(testSubject.getId(), Collections.singletonList(simplePolicy))
+            .build();
 
     Gatekeeper keeper = getGatekeeper(provider);
 
     AccessRequest request =
-            AccessRequest.builder()
-                    .subject(testSubject)
-                    .action("view")
-                    .resource("resource")
-                    .build();
+        AccessRequest.builder().subject(testSubject).action("view").resource("resource").build();
 
     assertEquals(Effect.DENY, keeper.enforce(request));
   }
@@ -147,33 +131,29 @@ class GatekeeperTests {
   void testPolicyMultipleConditions() {
     Subject testSubject = new StringSubject("Cory");
     Policy simplePolicy =
-            BasicPolicy.builder()
-                    .action("view")
-                    .resource("resource")
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder().arg("subject:id", "Cory").build())
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder().arg("example_context_value", "123").build()
-                    )
-                    .effect(Effect.ALLOW)
-                    .build();
+        BasicPolicy.builder()
+            .action("view")
+            .resource("resource")
+            .condition("string:equals", new ConditionBuilder().arg("subject:id", "Cory").build())
+            .condition(
+                "string:equals", new ConditionBuilder().arg("example_context_value", "123").build())
+            .effect(Effect.ALLOW)
+            .build();
 
     PolicyProvider provider =
-            TestPolicyProvider.builder()
-                    .policy(testSubject.getId(), Collections.singletonList(simplePolicy))
-                    .build();
+        TestPolicyProvider.builder()
+            .policy(testSubject.getId(), Collections.singletonList(simplePolicy))
+            .build();
 
     Gatekeeper keeper = getGatekeeper(provider);
 
     AccessRequest request =
-            AccessRequest.builder()
-                    .subject(testSubject)
-                    .action("view")
-                    .resource("resource")
-                    .contextVal("example_context_value", 123)
-                    .build();
+        AccessRequest.builder()
+            .subject(testSubject)
+            .action("view")
+            .resource("resource")
+            .contextVal("example_context_value", 123)
+            .build();
 
     assertEquals(Effect.ALLOW, keeper.enforce(request));
   }
@@ -183,40 +163,41 @@ class GatekeeperTests {
     Subject testSubject = new StringSubject("Cory");
     Subject denySubject = new StringSubject("Not Cory");
     Policy simplePolicy =
-            BasicPolicy.builder()
-                    .action("view")
-                    .resource("resource")
-                    .condition(
-                            "string:equals",
-                            new ConditionBuilder()
-                                    .arg("subject:id", "Cory")
-                                    .arg("example_context_value", "123").build())
-                    .effect(Effect.ALLOW)
-                    .build();
+        BasicPolicy.builder()
+            .action("view")
+            .resource("resource")
+            .condition(
+                "string:equals",
+                new ConditionBuilder()
+                    .arg("subject:id", "Cory")
+                    .arg("example_context_value", "123")
+                    .build())
+            .effect(Effect.ALLOW)
+            .build();
 
     PolicyProvider provider =
-            TestPolicyProvider.builder()
-                    .policy(testSubject.getId(), Collections.singletonList(simplePolicy))
-                    .policy(denySubject.getId(), Collections.singletonList(simplePolicy))
-                    .build();
+        TestPolicyProvider.builder()
+            .policy(testSubject.getId(), Collections.singletonList(simplePolicy))
+            .policy(denySubject.getId(), Collections.singletonList(simplePolicy))
+            .build();
 
     Gatekeeper keeper = getGatekeeper(provider);
 
     AccessRequest successRequest =
-            AccessRequest.builder()
-                    .subject(testSubject)
-                    .action("view")
-                    .resource("resource")
-                    .contextVal("example_context_value", 123)
-                    .build();
+        AccessRequest.builder()
+            .subject(testSubject)
+            .action("view")
+            .resource("resource")
+            .contextVal("example_context_value", 123)
+            .build();
 
     AccessRequest denyRequest =
-            AccessRequest.builder()
-                    .subject(denySubject)
-                    .action("view")
-                    .resource("resource")
-                    .contextVal("example_context_value", 123)
-                    .build();
+        AccessRequest.builder()
+            .subject(denySubject)
+            .action("view")
+            .resource("resource")
+            .contextVal("example_context_value", 123)
+            .build();
 
     assertEquals(Effect.ALLOW, keeper.enforce(successRequest));
     assertEquals(Effect.DENY, keeper.enforce(denyRequest));
@@ -224,29 +205,25 @@ class GatekeeperTests {
 
   @Test
   void testMultipleMatchingPoliciesWithDenyEffect() {
-      Subject testSubject = new StringSubject("Cory");
-      Subject denySubject = new StringSubject("Tyler");
-      Policy simplePolicy =
-              BasicPolicy.builder()
-                      .action("view")
-                      .resource("resource")
-                      .condition(
-                              "string:equals",
-                              new ConditionBuilder().arg("example_context_value", "123").build()
-                      )
-                      .effect(Effect.ALLOW)
-                      .build();
+    Subject testSubject = new StringSubject("Cory");
+    Subject denySubject = new StringSubject("Tyler");
+    Policy simplePolicy =
+        BasicPolicy.builder()
+            .action("view")
+            .resource("resource")
+            .condition(
+                "string:equals", new ConditionBuilder().arg("example_context_value", "123").build())
+            .effect(Effect.ALLOW)
+            .build();
 
-      // deny access to resource if the subject is "Michael"
-      Policy denyPolicy =
-              BasicPolicy.builder()
-                      .action("view")
-                      .resource("resource")
-                      .condition(
-                              "string:equals",
-                              new ConditionBuilder().arg("subject:id", "Tyler").build())
-                      .effect(Effect.DENY)
-                      .build();
+    // deny access to resource if the subject is "Michael"
+    Policy denyPolicy =
+        BasicPolicy.builder()
+            .action("view")
+            .resource("resource")
+            .condition("string:equals", new ConditionBuilder().arg("subject:id", "Tyler").build())
+            .effect(Effect.DENY)
+            .build();
 
     PolicyProvider provider =
         TestPolicyProvider.builder()
@@ -254,30 +231,65 @@ class GatekeeperTests {
             .policy(denySubject.getId(), Lists.newArrayList(simplePolicy, denyPolicy))
             .build();
 
-      Gatekeeper keeper = getGatekeeper(provider);
+    Gatekeeper keeper = getGatekeeper(provider);
 
-      AccessRequest successRequest =
-              AccessRequest.builder()
-                      .subject(testSubject)
-                      .action("view")
-                      .resource("resource")
-                      .contextVal("example_context_value", 123)
-                      .build();
+    AccessRequest successRequest =
+        AccessRequest.builder()
+            .subject(testSubject)
+            .action("view")
+            .resource("resource")
+            .contextVal("example_context_value", 123)
+            .build();
 
-      AccessRequest denyRequest =
-              AccessRequest.builder()
-                      .subject(denySubject)
-                      .action("view")
-                      .resource("resource")
-                      .contextVal("example_context_value", 123)
-                      .build();
+    AccessRequest denyRequest =
+        AccessRequest.builder()
+            .subject(denySubject)
+            .action("view")
+            .resource("resource")
+            .contextVal("example_context_value", 123)
+            .build();
 
-      assertEquals(Effect.ALLOW, keeper.enforce(successRequest));
-      assertEquals(Effect.DENY, keeper.enforce(denyRequest));
+    assertEquals(Effect.ALLOW, keeper.enforce(successRequest));
+    assertEquals(Effect.DENY, keeper.enforce(denyRequest));
   }
 
+  /**
+   * Test to verify that variables within a resource string are correctly enforced, such as
+   * accessing a user-specific folder within a list of buckets in s3.
+   */
   @Test
-  void testNoPoliciesAppliedToSubject() {
+  void testWilcardResource() {
+    Subject testSubject = new StringSubject("Cory");
+    Policy simplePolicy =
+        BasicPolicy.builder()
+            .action("view")
+            .description("Policy that allows a user to view their home directory")
+            .resource("s3://folders/users/${subject:id}/*")
+            .effect(Effect.ALLOW)
+            .build();
 
+    PolicyProvider provider =
+        TestPolicyProvider.builder()
+            .policy(testSubject.getId(), Collections.singletonList(simplePolicy))
+            .build();
+
+    Gatekeeper keeper = getGatekeeper(provider);
+
+    AccessRequest validRequest =
+        AccessRequest.builder()
+            .subject(testSubject)
+            .action("view")
+            .resource("s3://folders/users/Cory/some_object")
+            .build();
+
+    AccessRequest invalidRequest =
+        AccessRequest.builder()
+            .subject(testSubject)
+            .action("view")
+            .resource("s3://folders/users/Not Cory/some_object")
+            .build();
+
+    assertEquals(Effect.ALLOW, keeper.enforce(validRequest));
+    assertEquals(Effect.DENY, keeper.enforce(invalidRequest));
   }
 }
